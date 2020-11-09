@@ -33,7 +33,7 @@ def get_posts(num_posts = 100):
                 # if the user is selling something i'm interested in
                 if any([True for want in wants if want in selling]):
                     # prep email
-                    pois.append(f"{post.title}, with {post.num_comments} comments \n Find it here: {post.url} \n")  
+                    pois.append(f"<a href=\"{post.url}\">{post.title}, with {post.num_comments} comments</a> <br>")  
 
 # parse email and send
 def send_email():
@@ -60,7 +60,7 @@ def send_email():
             <body>
             <p>
                 <b style='font-size:20px'>Hello!</b><br><br>
-                Looker here:<br>
+                Look here:<br>
             </p>
             %s
             </body>
