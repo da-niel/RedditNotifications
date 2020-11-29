@@ -8,10 +8,6 @@ from decouple import config
 import time
 from datetime import datetime, timezone, timedelta
 
-## to do
-# ramp up sampling time during busy hours
-# double check that posts overlapped so you don't miss anything
-
 USERNAME = config("REDDIT_USERNAME")
 PASSWORD = config("REDDIT_PASSWORD")
 CLIENT_ID = config("REDDIT_CLIENTID")
@@ -19,27 +15,33 @@ CLIENT_SECRET = config("REDDIT_CLIENTSECRET")
 SENDER_EMAIL = config("SENDER_EMAIL")
 SENDER_PASSWORD = config("SENDER_PASSWORD")
 RECEIVER_EMAIL = config("RECEIVER_EMAIL")
+COUNTRY = 'US'
 
+subreddit = "mechmarket" # subreddit
+wants = ['savage', 'ursa'] # key words
+interestedPosts = []
+email = ""
+# collection of ids of posts already sent
+read_posts = [] 
 
-# crawl for posts
+# get latest posts
 def get_posts(num_posts = 100):
-    for post in rmk.new(limit = num_posts):
+    for post in reddit.subreddit(subreddit).new(limit = num_posts):
         if post.id not in read_posts:
             # mark post as read
             read_posts.append(post.id)
             # if it's in the US
-            if country in post.title[:post.title.find('[H]')]:
+            if COUNTRY in post.title[:post.title.find('[H]')]:
                 selling = post.title[post.title.find('[H]')+3:post.title.find('[W]')].strip(' ').lower()
                 # if the user is selling something i'm interested in
                 if any([True for want in wants if want in selling]):
                     # prep email
-                    pois.append(f"<a href=\"{post.url}\">{post.title}, with {post.num_comments} comments</a> <br>")  
+                    interestedPosts.append(f"<a href=\"{post.url}\">{post.title}, with {post.num_comments} comments</a> <br>")  
 
 # parse email and send
 def send_email():
-    email = ""
-    for poi in pois:
-        email = email + poi
+    for post in interestedPosts:
+        email = email + post
     email_list = [RECEIVER_EMAIL]
     subject = 'rMM Notification!'
     server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -77,25 +79,18 @@ if __name__ == '__main__':
     reddit = praw.Reddit(
         client_id = CLIENT_ID,
         client_secret = CLIENT_SECRET,
-        user_agent = "rmm script",
+        user_agent = "reddit script",
         username = USERNAME,
         password = PASSWORD
     )
-
-    rmk = reddit.subreddit("mechmarket")
-    country = 'US'
-    wants = ['savage', 'navy']
-    pois = []
-    email = ""
-    read_posts = [] # collection of ids of posts already sent
 
     while True:
         now = datetime.now(timezone.utc) - timedelta(hours = 7)
         num_posts = 10
         # get posts
         get_posts(num_posts)
-        print(f"| {datetime.now()} | Posts Found: {len(pois)}")
-        if len(pois) > 0:
+        print(f"| {datetime.now()} | Posts Found: {len(interestedPosts)}")
+        if len(interestedPosts) > 0:
             send_email()
-            pois = []
+            interestedPosts = []
         time.sleep(600)
